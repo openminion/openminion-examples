@@ -11,6 +11,8 @@ from uuid import uuid4
 from openminion import Agent, APIRuntime
 from pydantic import BaseModel
 
+READ_ONLY_RESEARCH_TOOLS = ("web.search", "web.fetch")
+
 
 class Brief(BaseModel):
     title: str
@@ -48,6 +50,7 @@ class OpenMinionResearch:
             runtime=self.runtime,
             agent_id=self.agent_id,
             session_id=session_id,
+            tools=list(READ_ONLY_RESEARCH_TOOLS),
             output_type=Brief,
         ) as agent:
             return agent.run(prompt).output
@@ -57,6 +60,7 @@ class OpenMinionResearch:
             runtime=self.runtime,
             agent_id=self.agent_id,
             session_id=session_id,
+            tools=list(READ_ONLY_RESEARCH_TOOLS),
         ) as agent:
             return agent.run(question).text
 

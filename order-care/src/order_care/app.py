@@ -218,7 +218,14 @@ class OrderCareWorkflow:
         readback = self.runtime.read_order(
             action.order_id, session_id=action.session_id
         )
-        self.store.put_order(action.order_id, action.requested_state)
+        if self.store.order_state(action.order_id) != action.requested_state:
+            self.store.set_action(
+                action_id,
+                status="uncertain",
+                decision=decision,
+                readback=readback,
+            )
+            raise RuntimeError("approved effect did not match the requested state")
         return self.store.set_action(
             action_id,
             status="applied",

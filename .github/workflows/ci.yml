@@ -11,20 +11,28 @@ jobs:
     strategy:
       matrix:
         app: [research-brief, order-care, software-feature-builder]
-        target: [release-0.1.24, dev-e87400e2]
+        target: [baseline-release-0.1.24, dev-9afefc42]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - if: matrix.target == 'release-0.1.24'
+      - if: matrix.target == 'baseline-release-0.1.24'
         run: python -m pip install openminion==0.1.24
-      - if: matrix.target == 'dev-e87400e2'
-        run: python -m pip install git+https://github.com/openminion/openminion.git@e87400e26f61c0681a9efc72024b9d5ee05dfc42
+      - if: matrix.target == 'dev-9afefc42'
+        run: python -m pip install git+https://github.com/openminion/openminion.git@9afefc42f
       - run: python -m pip install -e "./${{ matrix.app }}[dev]"
       - run: python -c "import openminion; from openminion.api import TurnChunk; print(openminion.__version__, TurnChunk(trace_id='ci', kind='status').schema_version)"
       - run: ruff check "${{ matrix.app }}"
-      - run: pytest -q "${{ matrix.app }}/tests" -m "not live"
+      - if: matrix.target == 'baseline-release-0.1.24'
+        run: pytest -q "${{ matrix.app }}/tests" -m "not live and not dev_contract"
+      - if: matrix.target == 'dev-9afefc42'
+        run: pytest -q "${{ matrix.app }}/tests" -m "not live"
+      - if: matrix.app == 'order-care' && matrix.target == 'baseline-release-0.1.24'
+        run: >-
+          python -c "import openminion.tools as tools;
+          assert not hasattr(tools, 'Plugin');
+          print('expected drift: local plugin author contract is unreleased')"
       - run: python -m pip check
 
   app-data-rollback:
@@ -34,7 +42,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: python -m pip install git+https://github.com/openminion/openminion.git@e87400e26f61c0681a9efc72024b9d5ee05dfc42
+      - run: python -m pip install git+https://github.com/openminion/openminion.git@9afefc42f
       - run: python -m pip install -e "./research-brief"
       - run: python -c "from research_brief.app import ResearchStore; ResearchStore('rollback.db').create('saved', 'keep this topic')"
       - run: python -m pip install --force-reinstall openminion==0.1.24

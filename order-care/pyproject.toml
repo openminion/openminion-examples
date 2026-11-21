@@ -13,7 +13,10 @@ dependencies = ["openminion>=0.1.24,<0.2"]
 dev = ["pytest>=8,<9", "ruff>=0.11,<0.16"]
 
 [tool.pytest.ini_options]
-markers = ["live: requires an explicitly configured provider"]
+markers = [
+    "dev_contract: requires the documented development plugin contract",
+    "live: requires an explicitly configured provider",
+]
 
 [tool.ruff]
 target-version = "py311"

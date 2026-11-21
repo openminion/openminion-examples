@@ -1,8 +1,18 @@
+import os
+import subprocess
+import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
-from research_brief.app import Brief, ResearchBriefWorkflow, ResearchStore
+from research_brief.app import (
+    READ_ONLY_RESEARCH_TOOLS,
+    Brief,
+    OpenMinionResearch,
+    ResearchBriefWorkflow,
+    ResearchStore,
+)
 
 
 class FakeResearch:
@@ -52,3 +62,91 @@ def test_missing_citations_fail_truthfully(tmp_path: Path) -> None:
         workflow.run("brief-1", "No sources")
 
     assert ResearchStore(tmp_path / "app.db").get("brief-1").status == "failed"
+
+
+def test_openminion_client_exposes_only_read_only_research_tools(monkeypatch) -> None:
+    agent_calls: list[dict[str, object]] = []
+
+    class FakeAgent:
+        def __init__(self, **kwargs: object) -> None:
+            agent_calls.append(kwargs)
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            return None
+
+        def run(self, prompt: str):
+            if "exact JSON" in prompt:
+                return SimpleNamespace(
+                    output=Brief(
+                        title="Tools",
+                        summary="Read only",
+                        citations=["https://example.com/source"],
+                    )
+                )
+            return SimpleNamespace(text="follow-up")
+
+    monkeypatch.setattr("research_brief.app.Agent", FakeAgent)
+    client = OpenMinionResearch.__new__(OpenMinionResearch)
+    client.runtime = object()
+    client.agent_id = None
+
+    client.research("Tools", session_id="session", max_calls=2)
+    client.follow_up("More?", session_id="session")
+
+    assert len(agent_calls) == 2
+    assert all(call["tools"] == list(READ_ONLY_RESEARCH_TOOLS) for call in agent_calls)
+
+
+def test_later_turn_uses_persisted_session_after_process_restart(
+    tmp_path: Path,
+) -> None:
+    source_root = Path(__file__).parents[1] / "src"
+    env = {**os.environ, "PYTHONPATH": str(source_root)}
+    database = tmp_path / "process-restart.db"
+    artifacts = tmp_path / "artifacts"
+    create_script = """
+import sys
+from research_brief.app import Brief, ResearchBriefWorkflow, ResearchStore
+
+class Client:
+    def research(self, topic, *, session_id, max_calls):
+        return Brief(title=topic, summary="summary", citations=["https://example.com"])
+    def follow_up(self, question, *, session_id):
+        return session_id
+
+workflow = ResearchBriefWorkflow(ResearchStore(sys.argv[1]), Client(), sys.argv[2])
+request = workflow.run("brief", "Restart")
+print(request.session_id)
+"""
+    follow_up_script = """
+import sys
+from research_brief.app import ResearchBriefWorkflow, ResearchStore
+
+class Client:
+    def research(self, topic, *, session_id, max_calls):
+        raise AssertionError("research must not rerun")
+    def follow_up(self, question, *, session_id):
+        return session_id
+
+workflow = ResearchBriefWorkflow(ResearchStore(sys.argv[1]), Client(), sys.argv[2])
+print(workflow.follow_up("brief", "More?"))
+"""
+    created = subprocess.run(
+        [sys.executable, "-c", create_script, str(database), str(artifacts)],
+        check=True,
+        capture_output=True,
+        text=True,
+        env=env,
+    ).stdout.strip()
+    resumed = subprocess.run(
+        [sys.executable, "-c", follow_up_script, str(database), str(artifacts)],
+        check=True,
+        capture_output=True,
+        text=True,
+        env=env,
+    ).stdout.strip()
+
+    assert resumed == created
