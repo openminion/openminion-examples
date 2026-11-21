@@ -116,7 +116,12 @@ def test_later_turn_uses_persisted_session_after_process_restart(
     artifacts = tmp_path / "artifacts"
     create_script = """
 import sys
-from research_brief.app import Brief, ResearchBriefWorkflow, ResearchStore
+from research_brief.app import (
+    Brief,
+    OpenMinionResearch,
+    ResearchBriefWorkflow,
+    ResearchStore,
+)
 
 class Client:
     def research(self, topic, *, session_id, max_calls_instruction):
@@ -126,6 +131,11 @@ class Client:
 
 workflow = ResearchBriefWorkflow(ResearchStore(sys.argv[1]), Client(), sys.argv[2])
 request = workflow.run("brief", "Restart")
+client = OpenMinionResearch(sys.argv[3])
+try:
+    client.follow_up("Seed runtime session", session_id=request.session_id)
+finally:
+    client.close()
 print(request.session_id)
 """
     config = tmp_path / "agents.json"
@@ -160,7 +170,14 @@ finally:
     client.close()
 """
     created = subprocess.run(
-        [sys.executable, "-c", create_script, str(database), str(artifacts)],
+        [
+            sys.executable,
+            "-c",
+            create_script,
+            str(database),
+            str(artifacts),
+            str(config),
+        ],
         check=True,
         capture_output=True,
         text=True,

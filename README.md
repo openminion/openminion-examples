@@ -5,9 +5,9 @@ OpenMinion runtime begins.
 
 | Application | Demonstrates |
 | --- | --- |
-| [`research-brief`](research-brief/) | read-only research, cited structured output, artifact readback, budgets, and later-turn continuity after restart |
+| [`research-brief`](research-brief/) | read-only research, cited structured output, artifact readback, bounded turn timeout, profile-owned tool budget, and later-turn continuity after restart |
 | [`order-care`](order-care/) | app-owned orders, streamed approval, allow-once/deny, effect readback, and uncertain-restart handling |
-| [`software-feature-builder`](software-feature-builder/) | bounded feature work, criteria, verifier failure/revision, process restart, and Git truth |
+| [`software-feature-builder`](software-feature-builder/) | bounded feature work, criteria, verifier failure/revision, runtime-client reconstruction, and Git truth |
 
 Each folder is independently installable and imports no sibling application.
 Repeated code is kept visible until more than one external application proves a
