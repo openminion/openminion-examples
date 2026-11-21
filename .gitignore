@@ -210,6 +210,7 @@ tempCodeRunnerFile.py
 
 # Ruff stuff:
 .ruff_cache/
+.openminion/
 
 # PyPI configuration file
 .pypirc
