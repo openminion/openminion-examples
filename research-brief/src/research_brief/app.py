@@ -12,6 +12,7 @@ from openminion import Agent, APIRuntime
 from pydantic import BaseModel
 
 READ_ONLY_RESEARCH_TOOLS = ("web.search", "web.fetch")
+TURN_TIMEOUT_SECONDS = 180
 
 
 class Brief(BaseModel):
@@ -30,7 +31,9 @@ class ResearchRequest:
 
 
 class ResearchClient(Protocol):
-    def research(self, topic: str, *, session_id: str, max_calls: int) -> Brief: ...
+    def research(
+        self, topic: str, *, session_id: str, max_calls_instruction: int
+    ) -> Brief: ...
 
     def follow_up(self, question: str, *, session_id: str) -> str: ...
 
@@ -40,10 +43,12 @@ class OpenMinionResearch:
         self.runtime = APIRuntime.from_config_path(config_path)
         self.agent_id = agent_id
 
-    def research(self, topic: str, *, session_id: str, max_calls: int) -> Brief:
+    def research(
+        self, topic: str, *, session_id: str, max_calls_instruction: int
+    ) -> Brief:
         prompt = (
             f"Research this topic using read-only tools: {topic}\n"
-            f"Use at most {max_calls} provider calls. Return exact JSON with "
+            f"Use at most {max_calls_instruction} tool calls. Return exact JSON with "
             "title, summary, and citations. citations must be a list of source URLs."
         )
         with Agent(
@@ -53,7 +58,7 @@ class OpenMinionResearch:
             tools=list(READ_ONLY_RESEARCH_TOOLS),
             output_type=Brief,
         ) as agent:
-            return agent.run(prompt).output
+            return agent.run(prompt, timeout_seconds=TURN_TIMEOUT_SECONDS).output
 
     def follow_up(self, question: str, *, session_id: str) -> str:
         with Agent(
@@ -62,7 +67,7 @@ class OpenMinionResearch:
             session_id=session_id,
             tools=list(READ_ONLY_RESEARCH_TOOLS),
         ) as agent:
-            return agent.run(question).text
+            return agent.run(question, timeout_seconds=TURN_TIMEOUT_SECONDS).text
 
     def close(self) -> None:
         self.runtime.close()
@@ -132,12 +137,12 @@ class ResearchBriefWorkflow:
         client: ResearchClient,
         artifact_root: str | Path,
         *,
-        max_calls: int = 8,
+        max_calls_instruction: int = 8,
     ) -> None:
         self.store = store
         self.client = client
         self.artifact_root = Path(artifact_root)
-        self.max_calls = max_calls
+        self.max_calls_instruction = max_calls_instruction
 
     def run(self, request_id: str, topic: str) -> ResearchRequest:
         request = self.store.create(request_id, topic)
@@ -147,7 +152,7 @@ class ResearchBriefWorkflow:
             brief = self.client.research(
                 topic,
                 session_id=request.session_id,
-                max_calls=self.max_calls,
+                max_calls_instruction=self.max_calls_instruction,
             )
             if not brief.citations or any(
                 not item.startswith("http") for item in brief.citations

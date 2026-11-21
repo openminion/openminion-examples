@@ -21,7 +21,9 @@ def _git(repository: Path, *args: str) -> str:
 
 
 @pytest.mark.live
-def test_live_revision_restart_and_git_truth(tmp_path: Path, monkeypatch) -> None:
+def test_live_revision_reconstruction_and_git_truth(
+    tmp_path: Path, monkeypatch
+) -> None:
     config_path = os.getenv("OPENMINION_LIVE_CONFIG")
     if not config_path:
         pytest.skip("OPENMINION_LIVE_CONFIG is not set")
@@ -61,13 +63,13 @@ def test_live_revision_restart_and_git_truth(tmp_path: Path, monkeypatch) -> Non
     finally:
         first_client.close()
 
-    restarted_client = OpenMinionCoding(config_path)
+    reconstructed_client = OpenMinionCoding(config_path)
     try:
-        result = FeatureBuilder(FeatureStore(store_path), restarted_client).resume(
+        result = FeatureBuilder(FeatureStore(store_path), reconstructed_client).resume(
             "feature-1", (sys.executable, "verify.py")
         )
     finally:
-        restarted_client.close()
+        reconstructed_client.close()
 
     assert result["status"] == "completed"
     assert result["attempts"] == 2

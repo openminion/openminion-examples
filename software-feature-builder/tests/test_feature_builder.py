@@ -38,7 +38,7 @@ def _git(repository: Path, *args: str) -> str:
     ).stdout.strip()
 
 
-def test_plan_approval_restart_revision_verification_and_git_truth(
+def test_plan_approval_reconstruction_revision_verification_and_git_truth(
     tmp_path: Path,
 ) -> None:
     repository = tmp_path / "project"
@@ -59,14 +59,14 @@ def test_plan_approval_restart_revision_verification_and_git_truth(
     assert plan.acceptance_criteria
     builder.approve("feature-1")
 
-    restarted = FeatureBuilder(FeatureStore(store_path), client)
+    reconstructed = FeatureBuilder(FeatureStore(store_path), client)
     verifier = (
         "python3",
         "-c",
         "from pathlib import Path; "
         "assert Path('feature.txt').read_text() == 'feature ok\\n'",
     )
-    result = restarted.resume("feature-1", verifier)
+    result = reconstructed.resume("feature-1", verifier)
 
     assert result["status"] == "completed"
     assert result["attempts"] == 2

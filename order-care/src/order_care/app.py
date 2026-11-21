@@ -8,6 +8,8 @@ from uuid import uuid4
 
 from openminion.api import APIRuntime, RuntimeTurnHandle
 
+TURN_TIMEOUT_SECONDS = 180
+
 
 @dataclass(frozen=True)
 class PreparedApproval:
@@ -55,6 +57,7 @@ class OpenMinionOrderRuntime:
                 "session_id": session_id,
                 "forced_tools": ["plugin.example.order_care.apply_state"],
                 "deliver": False,
+                "timeout_seconds": TURN_TIMEOUT_SECONDS,
             }
         )
         self.handles[handle.trace_id] = handle
@@ -84,6 +87,7 @@ class OpenMinionOrderRuntime:
                 "session_id": session_id,
                 "forced_tools": ["plugin.example.order_care.read_state"],
                 "deliver": False,
+                "timeout_seconds": TURN_TIMEOUT_SECONDS,
             }
         )
         return str(response["body"])

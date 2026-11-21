@@ -9,6 +9,8 @@ from uuid import uuid4
 from openminion import Agent, APIRuntime
 from pydantic import BaseModel
 
+TURN_TIMEOUT_SECONDS = 180
+
 
 class FeaturePlan(BaseModel):
     title: str
@@ -44,7 +46,8 @@ class OpenMinionCoding:
             return agent.run(
                 "Planning only: do not call tools or modify files. Return exact JSON "
                 "with title, file_path, and acceptance_criteria for this bounded "
-                f"disposable-repository request: {request}"
+                f"disposable-repository request: {request}",
+                timeout_seconds=TURN_TIMEOUT_SECONDS,
             ).output
 
     def implement(
@@ -77,7 +80,11 @@ class OpenMinionCoding:
             session_id=session_id,
             forced_tools=["file.write"],
         ) as agent:
-            agent.run(prompt, approval_callback=approve_planned_write)
+            agent.run(
+                prompt,
+                approval_callback=approve_planned_write,
+                timeout_seconds=TURN_TIMEOUT_SECONDS,
+            )
 
     def close(self) -> None:
         self.runtime.close()

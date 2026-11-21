@@ -29,25 +29,20 @@ def _plugin_environment(plugin_root: Path, database: Path):
 
 
 def _config(tmp_path: Path, plugin_id: str):
-    from openminion.base.config import (
-        AgentProfileConfig,
-        OpenMinionConfig,
-        save_config,
-    )
-
-    config = OpenMinionConfig()
-    config.agents = {
-        "openminion": AgentProfileConfig(
-            name="openminion",
-            provider="echo",
-            default_channel="console",
-        )
+    config = {
+        "default_agent": "openminion",
+        "agents": {
+            "openminion": {
+                "name": "openminion",
+                "provider": "echo",
+                "default_channel": "console",
+            }
+        },
+        "storage": {"path": str(tmp_path / "state.db")},
+        "enabled_plugins": [plugin_id],
     }
-    config.default_agent = "openminion"
-    config.storage.path = str(tmp_path / "state.db")
-    config.enabled_plugins = [plugin_id]
     config_path = tmp_path / "agents.json"
-    save_config(config, str(config_path))
+    config_path.write_text(json.dumps(config), encoding="utf-8")
     return config_path
 
 

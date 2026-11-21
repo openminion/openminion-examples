@@ -1,9 +1,11 @@
 # Research brief
 
-Creates a cited JSON artifact with read-only agent execution, a fixed provider
-call budget, deterministic citation checks, and application-owned request to
-session mapping. Restarting the process preserves the mapping and supports a
-new follow-up turn; it does not reattach an in-flight stream.
+Creates a cited JSON artifact with read-only agent execution, a bounded turn
+timeout, deterministic citation checks, and application-owned request to
+session mapping. The requested tool-call count is a model instruction; the
+runtime profile remains the owner of enforced tool budgets. Restarting the
+process preserves the mapping and supports a real OpenMinion follow-up turn; it
+does not reattach an in-flight stream.
 
 ```bash
 python -m pip install -e ".[dev]"
