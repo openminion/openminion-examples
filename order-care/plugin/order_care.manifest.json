@@ -1,0 +1,18 @@
+{
+  "id": "example.order_care",
+  "name": "Order care example",
+  "version": "0.1.0",
+  "contract_version": "1",
+  "description": "Application-owned order tools for the OpenMinion order-care example.",
+  "config_schema": {
+    "type": "object",
+    "properties": {},
+    "additionalProperties": false
+  },
+  "trust_tier": "local-dev",
+  "requested_capabilities": [],
+  "provenance": {
+    "source": "local-path",
+    "verified": false
+  }
+}
