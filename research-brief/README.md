@@ -9,6 +9,7 @@ does not reattach an in-flight stream.
 
 ```bash
 python -m pip install -e ".[dev]"
+export OPENMINION_CONFIG=/path/to/your/openminion-config   # or pass --config
 research-brief "What changed in Python packaging this year?"
 pytest
 ```
